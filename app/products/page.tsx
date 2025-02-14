@@ -3,8 +3,8 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { motion } from "framer-motion"
-import { ArrowLeft, Server, Cloud, MessageSquare } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { ArrowLeft, Server, Cloud, MessageSquare, X } from "lucide-react"
 import FakeBuyerWidget from "../components/FakeBuyerWidget"
 
 const products = [
@@ -65,17 +65,36 @@ const products = [
   },
 ]
 
+const paymentMethods = [
+  { name: "QRIS", icon: "💳" },
+  { name: "Dana", icon: "💰" },
+  { name: "Gopay", icon: "📱" },
+  { name: "Bank", icon: "🏦" },
+]
+
 export default function ProductsPage() {
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<{ name: string; price: number; details?: string } | null>(null)
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
 
   const handleLearnMore = (productName: string) => {
     setExpandedProduct(expandedProduct === productName ? null : productName)
   }
 
   const handleBuy = (productName: string, price: number, details?: string) => {
-    const message = `📝Halo YusufHosting mau order\n\nProduk : ${productName}\nHarga : ${price.toLocaleString("id-ID")}\nPembayaran : sesuai request buyer${details ? `\n${details}` : ""}`
-    const encodedMessage = encodeURIComponent(message)
-    window.open(`https://wa.me/6285935002092?text=${encodedMessage}`, "_blank")
+    setSelectedProduct({ name: productName, price, details })
+    setIsPaymentModalOpen(true)
+  }
+
+  const handlePaymentSelection = (paymentMethod: string) => {
+    if (selectedProduct) {
+      const { name, price, details } = selectedProduct
+      const message = `📝Halo YusufHosting mau order\n\nProduk : ${name}\nHarga : ${price.toLocaleString("id-ID")}\nPembayaran : ${paymentMethod}${details ? `\n${details}` : ""}`
+      const encodedMessage = encodeURIComponent(message)
+      window.open(`https://wa.me/6285935002092?text=${encodedMessage}`, "_blank")
+    }
+    setIsPaymentModalOpen(false)
+    setSelectedProduct(null)
   }
 
   return (
@@ -190,6 +209,43 @@ export default function ProductsPage() {
       </footer>
 
       <FakeBuyerWidget />
+
+      <AnimatePresence>
+        {isPaymentModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Pilih Metode Pembayaran</h2>
+                <button onClick={() => setIsPaymentModalOpen(false)} className="text-gray-400 hover:text-white">
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {paymentMethods.map((method) => (
+                  <button
+                    key={method.name}
+                    onClick={() => handlePaymentSelection(method.name)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition duration-300 ease-in-out flex items-center justify-center"
+                  >
+                    <span className="mr-2 text-2xl">{method.icon}</span>
+                    {method.name}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
